@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useEEGStore } from '../store/eeg';
 import { EEGData, BandPower, BrainState, CorrelationData } from '../types';
 import axios from 'axios';
@@ -110,6 +110,7 @@ export const WaveformChart: React.FC = () => {
   const {
     eegData, selectedChannel, setEEGData, setBandPower, setBrainState, setCorrelationData,
     isRecording, addRecordingFrame, playbackMode,
+    selectedTimePoint, setSelectedTimePoint,
   } = useEEGStore();
   const [loading, setLoading] = useState(false);
   const intervalRef = useRef<number | null>(null);
@@ -135,6 +136,7 @@ export const WaveformChart: React.FC = () => {
     state.setBandPower(bands);
     state.setBrainState(brainState);
     state.setCorrelationData(correlation);
+    state.setSelectedTimePoint(null);
     if (state.isRecording) {
       state.addRecordingFrame(eeg, bands, brainState);
     }
@@ -160,10 +162,31 @@ export const WaveformChart: React.FC = () => {
     t: eegData.time[i]?.toFixed(3), value: v.toFixed(4)
   })) || [];
 
+  const handleChartClick = useCallback((e: any) => {
+    if (!e || !e.activeLabel) return;
+    const clickedTime = parseFloat(e.activeLabel);
+    if (isNaN(clickedTime)) return;
+    const current = useEEGStore.getState().selectedTimePoint;
+    const diff = Math.abs(clickedTime - (current ?? -1));
+    if (diff < 0.005) {
+      setSelectedTimePoint(null);
+    } else {
+      setSelectedTimePoint(clickedTime);
+    }
+  }, [setSelectedTimePoint]);
+
+  const selectedTimeStr = selectedTimePoint !== null ? selectedTimePoint.toFixed(3) : null;
+
   const channelName = CHANNEL_NAMES[selectedChannel] || selectedChannel;
 
   return (
-    <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+    <div style={{
+      padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+      outline: selectedTimePoint !== null ? '2px solid #1565c0' : 'none',
+      outlineOffset: '-2px',
+      transition: 'outline 0.2s ease',
+    }}>
       <h3 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <span style={{ fontSize: '20px' }}>📈</span>
         <span>{selectedChannel}</span>
@@ -178,10 +201,22 @@ export const WaveformChart: React.FC = () => {
           <span style={{ fontSize: '12px', color: '#1565c0', fontWeight: 500 }}>⏮ 回放模式</span>
         )}
         {loading && !playbackMode && <span style={{ fontSize: '12px', color: '#999' }}>刷新中...</span>}
+        {selectedTimeStr && (
+          <span style={{
+            fontSize: '12px', fontWeight: 600, color: '#fff', background: '#1565c0',
+            padding: '2px 10px', borderRadius: '12px', marginLeft: 'auto',
+            letterSpacing: '0.5px',
+          }}>
+            选中 t={selectedTimeStr}s
+          </span>
+        )}
       </h3>
       <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={chartData}>
+        <LineChart data={chartData} onClick={handleChartClick} style={{ cursor: 'pointer' }}>
           <XAxis dataKey="t" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip />
+          {selectedTimeStr && (
+            <ReferenceLine x={selectedTimeStr} stroke="#1565c0" strokeWidth={2} strokeDasharray="6 3" />
+          )}
           <Line type="monotone" dataKey="value" stroke="#1565c0" dot={false} strokeWidth={1.5} />
         </LineChart>
       </ResponsiveContainer>

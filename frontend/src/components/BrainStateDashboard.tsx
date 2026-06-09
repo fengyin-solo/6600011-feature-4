@@ -33,12 +33,19 @@ const ScoreBar: React.FC<{ label: string; value: number; color: string; icon: st
 };
 
 export const BrainStateDashboard: React.FC = () => {
-  const { brainState, selectedChannel, playbackMode, activeRecording, playbackState } = useEEGStore();
+  const { brainState, selectedChannel, playbackMode, activeRecording, playbackState, selectedTimePoint, setSelectedTimePoint } = useEEGStore();
   const channelName = CHANNEL_NAMES[selectedChannel] || selectedChannel;
+  const isLinked = selectedTimePoint !== null;
 
   if (!brainState) {
     return (
-      <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+      <div style={{
+        padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+        outline: isLinked ? '2px solid #1565c0' : 'none',
+        outlineOffset: '-2px',
+        transition: 'outline 0.2s ease',
+      }}>
         <div style={{ marginBottom: '16px', padding: '16px', background: 'linear-gradient(135deg, #1565c0, #0d47a1)', borderRadius: '10px', color: '#fff', textAlign: 'center' }}>
           <div style={{ fontSize: '11px', opacity: 0.8, marginBottom: '4px' }}>当前关注通道</div>
           <div style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '2px' }}>{selectedChannel}</div>
@@ -48,6 +55,14 @@ export const BrainStateDashboard: React.FC = () => {
           <span>🧠</span>
           {playbackMode ? '回放脑状态' : '实时脑状态'}
           {playbackMode && <span style={{ fontSize: '12px', color: '#1565c0', fontWeight: 500 }}>⏮ 回放中</span>}
+          {isLinked && (
+            <span style={{
+              fontSize: '12px', fontWeight: 600, color: '#fff', background: '#1565c0',
+              padding: '2px 10px', borderRadius: '12px', marginLeft: 'auto',
+            }}>
+              联动 t={selectedTimePoint!.toFixed(3)}s
+            </span>
+          )}
         </h3>
         <div style={{ color: '#999', padding: '40px 0', textAlign: 'center' }}>等待数据中...</div>
       </div>
@@ -55,7 +70,13 @@ export const BrainStateDashboard: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+    <div style={{
+      padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px',
+      boxShadow: isLinked ? '0 2px 8px rgba(21,101,192,0.15)' : '0 2px 8px rgba(0,0,0,0.06)',
+      outline: isLinked ? '2px solid #1565c0' : 'none',
+      outlineOffset: '-2px',
+      transition: 'outline 0.2s ease, box-shadow 0.2s ease',
+    }}>
       <div style={{
         marginBottom: '16px',
         padding: '16px',
@@ -86,6 +107,14 @@ export const BrainStateDashboard: React.FC = () => {
         <span>🧠</span>
         {playbackMode ? '回放脑状态' : '实时脑状态'}
         {playbackMode && <span style={{ fontSize: '12px', color: '#1565c0', fontWeight: 500 }}>⏮ 回放模式</span>}
+        {isLinked && (
+          <span style={{
+            fontSize: '12px', fontWeight: 600, color: '#fff', background: '#1565c0',
+            padding: '2px 10px', borderRadius: '12px', marginLeft: 'auto',
+          }}>
+            联动 t={selectedTimePoint!.toFixed(3)}s
+          </span>
+        )}
       </h3>
 
       <div
@@ -127,6 +156,22 @@ export const BrainStateDashboard: React.FC = () => {
       <ScoreBar label="专注度" value={brainState.focus} color="#1976d2" icon="🎯" />
       <ScoreBar label="放松度" value={brainState.relaxation} color="#388e3c" icon="🍃" />
       <ScoreBar label="疲劳度" value={brainState.fatigue} color="#d32f2f" icon="😴" />
+
+      {isLinked && (
+        <div style={{
+          fontSize: '12px', color: '#1565c0', fontWeight: 500,
+          background: '#e3f2fd', padding: '6px 12px', borderRadius: '6px',
+          marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span>📌 联动选中 t={selectedTimePoint!.toFixed(3)}s</span>
+          <span
+            style={{ cursor: 'pointer', color: '#999', fontSize: '11px' }}
+            onClick={() => setSelectedTimePoint(null)}
+          >
+            ✕ 清除选中
+          </span>
+        </div>
+      )}
 
       <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #eee', fontSize: '11px', color: '#999', textAlign: 'right' }}>
         最后更新: {new Date(brainState.timestamp).toLocaleTimeString()}

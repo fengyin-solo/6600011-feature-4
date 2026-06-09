@@ -32,12 +32,14 @@ interface EEGState {
   playbackMode: boolean;
   activeRecording: Recording | null;
   playbackState: PlaybackState;
+  selectedTimePoint: number | null;
   setEEGData: (d: EEGData | null) => void;
   setChannel: (c: string) => void;
   setBandPower: (b: BandPower | null) => void;
   setStreaming: (v: boolean) => void;
   setBrainState: (s: BrainState | null) => void;
   setCorrelationData: (c: CorrelationData | null) => void;
+  setSelectedTimePoint: (t: number | null) => void;
   startRecording: () => void;
   stopRecording: (name: string) => void;
   addRecordingFrame: (eeg: EEGData, bands: BandPower, brainState: BrainState) => void;
@@ -56,6 +58,7 @@ export const useEEGStore = create<EEGState>((set, get) => ({
   isStreaming: false,
   brainState: null,
   correlationData: null,
+  selectedTimePoint: null,
   isRecording: false,
   recordingStartTime: 0,
   currentRecordingFrames: [],
@@ -73,6 +76,7 @@ export const useEEGStore = create<EEGState>((set, get) => ({
   setStreaming: (v) => set({ isStreaming: v }),
   setBrainState: (s) => set({ brainState: s }),
   setCorrelationData: (c) => set({ correlationData: c }),
+  setSelectedTimePoint: (t) => set({ selectedTimePoint: t }),
   startRecording: () => {
     const { selectedChannel } = get();
     set({
