@@ -33,6 +33,9 @@ interface EEGState {
   activeRecording: Recording | null;
   playbackState: PlaybackState;
   selectedTimePoint: number | null;
+  selectedBandPower: BandPower | null;
+  selectedBrainState: BrainState | null;
+  selectedCorrelationData: CorrelationData | null;
   setEEGData: (d: EEGData | null) => void;
   setChannel: (c: string) => void;
   setBandPower: (b: BandPower | null) => void;
@@ -40,6 +43,7 @@ interface EEGState {
   setBrainState: (s: BrainState | null) => void;
   setCorrelationData: (c: CorrelationData | null) => void;
   setSelectedTimePoint: (t: number | null) => void;
+  setSelectedAnalysisData: (bands: BandPower | null, brain: BrainState | null, corr: CorrelationData | null) => void;
   startRecording: () => void;
   stopRecording: (name: string) => void;
   addRecordingFrame: (eeg: EEGData, bands: BandPower, brainState: BrainState) => void;
@@ -59,6 +63,9 @@ export const useEEGStore = create<EEGState>((set, get) => ({
   brainState: null,
   correlationData: null,
   selectedTimePoint: null,
+  selectedBandPower: null,
+  selectedBrainState: null,
+  selectedCorrelationData: null,
   isRecording: false,
   recordingStartTime: 0,
   currentRecordingFrames: [],
@@ -76,7 +83,17 @@ export const useEEGStore = create<EEGState>((set, get) => ({
   setStreaming: (v) => set({ isStreaming: v }),
   setBrainState: (s) => set({ brainState: s }),
   setCorrelationData: (c) => set({ correlationData: c }),
-  setSelectedTimePoint: (t) => set({ selectedTimePoint: t }),
+  setSelectedTimePoint: (t) => set({
+    selectedTimePoint: t,
+    selectedBandPower: t !== null ? get().selectedBandPower : null,
+    selectedBrainState: t !== null ? get().selectedBrainState : null,
+    selectedCorrelationData: t !== null ? get().selectedCorrelationData : null,
+  }),
+  setSelectedAnalysisData: (bands, brain, corr) => set({
+    selectedBandPower: bands,
+    selectedBrainState: brain,
+    selectedCorrelationData: corr,
+  }),
   startRecording: () => {
     const { selectedChannel } = get();
     set({

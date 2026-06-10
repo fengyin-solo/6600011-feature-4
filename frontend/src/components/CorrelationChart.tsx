@@ -9,11 +9,15 @@ const CHANNEL_NAMES: Record<string, string> = {
 };
 
 export const CorrelationChart: React.FC = () => {
-  const { correlationData, selectedChannel, selectedTimePoint, setSelectedTimePoint } = useEEGStore();
+  const {
+    correlationData, selectedChannel, selectedTimePoint, setSelectedTimePoint,
+    selectedCorrelationData,
+  } = useEEGStore();
   const channelName = CHANNEL_NAMES[selectedChannel] || selectedChannel;
   const isLinked = selectedTimePoint !== null;
+  const activeCorrelationData = isLinked ? selectedCorrelationData : correlationData;
 
-  if (!correlationData) {
+  if (!activeCorrelationData) {
     return (
       <div style={{
         padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px',
@@ -40,7 +44,7 @@ export const CorrelationChart: React.FC = () => {
     );
   }
 
-  const chartData = correlationData.correlations
+  const chartData = activeCorrelationData.correlations
     .filter(c => c.channel !== selectedChannel)
     .map(c => ({
       name: c.channel,

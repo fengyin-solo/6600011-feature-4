@@ -12,6 +12,66 @@ const CHANNEL_NAMES: Record<string, string> = {
 
 const ALL_CHANNELS = ['Fp1', 'Fp2', 'F3', 'F4', 'C3', 'C4', 'P3', 'P4', 'O1', 'O2'];
 const SAMPLE_RATE = 256;
+const WINDOW_DURATION = 1.0;
+
+const extractSignalWindow = (
+  eegData: EEGData, centerTime: number, duration: number
+): { windowData: Record<string, number[]>; windowTime: number[] } | null => {
+  const halfDur = duration / 2;
+  const startTime = Math.max(0, centerTime - halfDur);
+  const endTime = Math.min(eegData.duration, centerTime + halfDur);
+  let startIdx = 0;
+  let endIdx = eegData.time.length - 1;
+  for (let i = 0; i < eegData.time.length; i++) {
+    if (eegData.time[i] < startTime) startIdx = i + 1;
+    if (eegData.time[i] > endTime) { endIdx = i - 1; break; }
+  }
+  if (startIdx >= eegData.time.length || endIdx < startIdx) return null;
+  const windowTime = eegData.time.slice(startIdx, endIdx + 1);
+  const windowData: Record<string, number[]> = {};
+  for (const ch of eegData.channels) {
+    windowData[ch] = eegData.data[ch].slice(startIdx, endIdx + 1);
+  }
+  return { windowData, windowTime };
+};
+
+const computeBandPowerFromSignal = (
+  signal: number[], sampleRate: number
+): BandPower => {
+  const n = signal.length;
+  const bandRanges: Record<string, [number, number]> = {
+    delta: [0.5, 4],
+    theta: [4, 8],
+    alpha: [8, 13],
+    beta: [13, 30],
+    gamma: [30, 100],
+  };
+  const bandPower: Record<string, number> = { delta: 0, theta: 0, alpha: 0, beta: 0, gamma: 0 };
+  const halfN = Math.floor(n / 2);
+  const freqResolution = sampleRate / n;
+  for (let k = 0; k < halfN; k++) {
+    let re = 0, im = 0;
+    for (let i = 0; i < n; i++) {
+      const angle = -2 * Math.PI * k * i / n;
+      re += signal[i] * Math.cos(angle);
+      im += signal[i] * Math.sin(angle);
+    }
+    const power = (re * re + im * im) / (n * n);
+    const freq = k * freqResolution;
+    for (const [band, [lo, hi]] of Object.entries(bandRanges)) {
+      if (freq >= lo && freq < hi) {
+        bandPower[band] += power;
+      }
+    }
+  }
+  return {
+    delta: Math.round(bandPower.delta * 10000) / 10000,
+    theta: Math.round(bandPower.theta * 10000) / 10000,
+    alpha: Math.round(bandPower.alpha * 10000) / 10000,
+    beta: Math.round(bandPower.beta * 10000) / 10000,
+    gamma: Math.round(bandPower.gamma * 10000) / 10000,
+  };
+};
 
 const generateMockEEG = (durationSec: number = 3.0): EEGData => {
   const length = Math.floor(SAMPLE_RATE * durationSec);
@@ -166,14 +226,39 @@ export const WaveformChart: React.FC = () => {
     if (!e || !e.activeLabel) return;
     const clickedTime = parseFloat(e.activeLabel);
     if (isNaN(clickedTime)) return;
-    const current = useEEGStore.getState().selectedTimePoint;
+    const state = useEEGStore.getState();
+    const current = state.selectedTimePoint;
     const diff = Math.abs(clickedTime - (current ?? -1));
     if (diff < 0.005) {
-      setSelectedTimePoint(null);
-    } else {
-      setSelectedTimePoint(clickedTime);
+      state.setSelectedTimePoint(null);
+      return;
     }
-  }, [setSelectedTimePoint]);
+    if (!state.eegData) {
+      state.setSelectedTimePoint(clickedTime);
+      return;
+    }
+    const window_ = extractSignalWindow(state.eegData, clickedTime, WINDOW_DURATION);
+    if (!window_) {
+      state.setSelectedTimePoint(clickedTime);
+      return;
+    }
+    const selectedCh = state.selectedChannel;
+    const chSignal = window_.windowData[selectedCh];
+    const bands = chSignal
+      ? computeBandPowerFromSignal(chSignal, state.eegData.sample_rate)
+      : computeBandPower();
+    const brainState = computeBrainState(bands);
+    const windowEeg: EEGData = {
+      channels: state.eegData.channels,
+      sample_rate: state.eegData.sample_rate,
+      data: window_.windowData,
+      time: window_.windowTime,
+      duration: WINDOW_DURATION,
+    };
+    const correlation = computeCorrelation(selectedCh, windowEeg);
+    state.setSelectedTimePoint(clickedTime);
+    state.setSelectedAnalysisData(bands, brainState, correlation);
+  }, []);
 
   const selectedTimeStr = selectedTimePoint !== null ? selectedTimePoint.toFixed(3) : null;
 

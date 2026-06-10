@@ -33,11 +33,12 @@ const ScoreBar: React.FC<{ label: string; value: number; color: string; icon: st
 };
 
 export const BrainStateDashboard: React.FC = () => {
-  const { brainState, selectedChannel, playbackMode, activeRecording, playbackState, selectedTimePoint, setSelectedTimePoint } = useEEGStore();
+  const { brainState, selectedChannel, playbackMode, activeRecording, playbackState, selectedTimePoint, setSelectedTimePoint, selectedBrainState } = useEEGStore();
   const channelName = CHANNEL_NAMES[selectedChannel] || selectedChannel;
   const isLinked = selectedTimePoint !== null;
+  const activeBrainState = isLinked ? selectedBrainState : brainState;
 
-  if (!brainState) {
+  if (!activeBrainState) {
     return (
       <div style={{
         padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px',
@@ -121,8 +122,8 @@ export const BrainStateDashboard: React.FC = () => {
         style={{
           padding: '20px',
           borderRadius: '12px',
-          background: `linear-gradient(135deg, ${brainState.statusColor}15, ${brainState.statusColor}08)`,
-          border: `2px solid ${brainState.statusColor}`,
+          background: `linear-gradient(135deg, ${activeBrainState.statusColor}15, ${activeBrainState.statusColor}08)`,
+          border: `2px solid ${activeBrainState.statusColor}`,
           marginBottom: '20px',
           display: 'flex',
           alignItems: 'center',
@@ -131,8 +132,8 @@ export const BrainStateDashboard: React.FC = () => {
       >
         <div>
           <div style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>当前状态</div>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: brainState.statusColor, letterSpacing: '2px' }}>
-            {brainState.statusLabel}
+          <div style={{ fontSize: '32px', fontWeight: 800, color: activeBrainState.statusColor, letterSpacing: '2px' }}>
+            {activeBrainState.statusLabel}
           </div>
         </div>
         <div
@@ -140,22 +141,22 @@ export const BrainStateDashboard: React.FC = () => {
             width: '60px',
             height: '60px',
             borderRadius: '50%',
-            background: brainState.statusColor,
+            background: activeBrainState.statusColor,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '30px',
-            boxShadow: `0 0 20px ${brainState.statusColor}40`,
+            boxShadow: `0 0 20px ${activeBrainState.statusColor}40`,
             animation: 'pulse 2s infinite',
           }}
         >
-          {brainState.status === 'focused' ? '🎯' : brainState.status === 'relaxed' ? '🍃' : brainState.status === 'fatigued' ? '😴' : '🧘'}
+          {activeBrainState.status === 'focused' ? '🎯' : activeBrainState.status === 'relaxed' ? '🍃' : activeBrainState.status === 'fatigued' ? '😴' : '🧘'}
         </div>
       </div>
 
-      <ScoreBar label="专注度" value={brainState.focus} color="#1976d2" icon="🎯" />
-      <ScoreBar label="放松度" value={brainState.relaxation} color="#388e3c" icon="🍃" />
-      <ScoreBar label="疲劳度" value={brainState.fatigue} color="#d32f2f" icon="😴" />
+      <ScoreBar label="专注度" value={activeBrainState.focus} color="#1976d2" icon="🎯" />
+      <ScoreBar label="放松度" value={activeBrainState.relaxation} color="#388e3c" icon="🍃" />
+      <ScoreBar label="疲劳度" value={activeBrainState.fatigue} color="#d32f2f" icon="😴" />
 
       {isLinked && (
         <div style={{
@@ -174,7 +175,7 @@ export const BrainStateDashboard: React.FC = () => {
       )}
 
       <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #eee', fontSize: '11px', color: '#999', textAlign: 'right' }}>
-        最后更新: {new Date(brainState.timestamp).toLocaleTimeString()}
+        最后更新: {new Date(activeBrainState.timestamp).toLocaleTimeString()}
       </div>
 
       <style>{`

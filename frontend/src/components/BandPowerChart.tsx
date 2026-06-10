@@ -12,11 +12,15 @@ const CHANNEL_NAMES: Record<string, string> = {
 };
 
 export const BandPowerChart: React.FC = () => {
-  const { bandPower, selectedChannel, playbackMode, selectedTimePoint, setSelectedTimePoint } = useEEGStore();
+  const {
+    bandPower, selectedChannel, playbackMode, selectedTimePoint, setSelectedTimePoint,
+    selectedBandPower,
+  } = useEEGStore();
   const channelName = CHANNEL_NAMES[selectedChannel] || selectedChannel;
   const isLinked = selectedTimePoint !== null;
+  const activeBandPower = isLinked ? selectedBandPower : bandPower;
 
-  if (!bandPower) {
+  if (!activeBandPower) {
     return (
       <div style={{
         padding: '16px', background: '#fff', borderRadius: '12px', margin: '16px',
@@ -46,7 +50,7 @@ export const BandPowerChart: React.FC = () => {
 
   const data = LABELS.map((label, i) => ({
     name: label,
-    power: (bandPower as any)[label.toLowerCase()] || 0,
+    power: (activeBandPower as any)[label.toLowerCase()] || 0,
     color: COLORS[i]
   }));
 
